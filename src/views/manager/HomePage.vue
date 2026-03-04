@@ -58,8 +58,18 @@ function openConfigEdit() {
 }
 
 async function saveConfig() {
+  const f = editForm.value
+  if (f.checkin_days < 1 || f.points_per_cycle < 1 || f.bonus_cycles < 1 || f.bonus_points < 1
+    || f.points_expiry_days < 1 || f.penalty_inactive_days < 1 || f.penalty_points < 1) {
+    showToast('配置值必须大于0')
+    return
+  }
+  if (f.day_reset_hour < 0 || f.day_reset_hour > 23) {
+    showToast('日期重置时间需在0-23之间')
+    return
+  }
   try {
-    await updateConfig(editForm.value)
+    await updateConfig(f)
     showConfigEdit.value = false
     showSuccessToast('保存成功')
     await loadData()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '@/stores/auth'
@@ -12,6 +12,11 @@ const showNicknameEdit = ref(false)
 const newNickname = ref(auth.nickname)
 const showPasswordEdit = ref(false)
 const passwordForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
+
+// 弹窗打开时重置为当前昵称，避免取消后残留旧输入
+watch(showNicknameEdit, (val) => {
+  if (val) newNickname.value = auth.nickname
+})
 
 async function onAvatarChange(item: any) {
   const file = Array.isArray(item) ? item[0]?.file : item?.file

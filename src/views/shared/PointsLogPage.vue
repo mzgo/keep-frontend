@@ -58,10 +58,7 @@ async function loadMore() {
   }
 }
 
-onMounted(async () => {
-  await loadSummary()
-  await loadMore()
-})
+onMounted(loadSummary)
 </script>
 
 <template>

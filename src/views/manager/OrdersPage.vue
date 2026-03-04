@@ -125,7 +125,6 @@ onMounted(loadOrders)
       title="核销订单"
       show-cancel-button
       confirm-button-text="核销"
-      :before-close="() => {}"
       @confirm="onVerify"
     >
       <div class="scanner-content">

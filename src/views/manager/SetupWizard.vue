@@ -19,7 +19,25 @@ const form = ref({
   day_reset_hour: 5,
 })
 
+function validateStep(): boolean {
+  const f = form.value
+  if (step.value === 0) {
+    if (f.checkin_days < 1) { showToast('打卡天数至少为1'); return false }
+    if (f.points_per_cycle < 1) { showToast('每周期积分至少为1'); return false }
+  } else if (step.value === 1) {
+    if (f.bonus_cycles < 1) { showToast('全勤周期数至少为1'); return false }
+    if (f.bonus_points < 1) { showToast('额外积分至少为1'); return false }
+  } else if (step.value === 2) {
+    if (f.points_expiry_days < 1) { showToast('积分有效期至少为1天'); return false }
+    if (f.penalty_inactive_days < 1) { showToast('惩罚天数至少为1'); return false }
+    if (f.penalty_points < 1) { showToast('扣除积分至少为1'); return false }
+    if (f.day_reset_hour < 0 || f.day_reset_hour > 23) { showToast('重置时间需在0-23之间'); return false }
+  }
+  return true
+}
+
 function nextStep() {
+  if (!validateStep()) return
   step.value++
 }
 
@@ -28,6 +46,7 @@ function prevStep() {
 }
 
 async function onFinish() {
+  if (!validateStep()) return
   loading.value = true
   try {
     await updateConfig(form.value)

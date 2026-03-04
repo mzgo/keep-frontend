@@ -32,6 +32,7 @@ function onSelectImage(item: any) {
   const file = Array.isArray(item) ? item[0]?.file : item?.file
   if (!file) return
   selectedImage.value = file
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = URL.createObjectURL(file)
   showCheckinPanel.value = true
 }
@@ -54,6 +55,7 @@ async function submitCheckin() {
     showToast('打卡成功!')
     showCheckinPanel.value = false
     selectedImage.value = null
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = ''
     checkinNote.value = ''
     await loadStatus()

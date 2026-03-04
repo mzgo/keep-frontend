@@ -19,7 +19,7 @@ async function loadShop() {
 }
 
 async function onRedeem(prize: ShopPrize) {
-  if (!prize.can_redeem) return
+  if (!prize.can_redeem || loading.value) return
 
   try {
     await showConfirmDialog({

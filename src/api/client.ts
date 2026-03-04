@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: `${import.meta.env.VITE_API_BASE_URL || ''}/api`,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -61,7 +61,7 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+      const baseUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/api`
       const { data } = await axios.post(`${baseUrl}/auth/refresh`, {
         refresh_token: auth.refreshToken,
       })

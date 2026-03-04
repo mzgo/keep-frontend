@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { showToast, showSuccessToast } from 'vant'
 import { getManagerOrders, verifyOrder } from '@/api/orders'
 import type { ManagerOrder } from '@/api/orders'
+import { Html5Qrcode } from 'html5-qrcode'
 
 const orderList = ref<ManagerOrder[]>([])
 const activeTab = ref('')
@@ -13,6 +14,9 @@ const page = ref(1)
 const showScanner = ref(false)
 const manualCode = ref('')
 const verifying = ref(false)
+const scannerMode = ref<'camera' | 'manual'>('manual')
+const cameraActive = ref(false)
+let html5Qrcode: Html5Qrcode | null = null
 
 const tabs = [
   { value: '', label: '全部' },
@@ -56,16 +60,12 @@ function resetAndLoad() {
   loadOrders()
 }
 
-async function onVerify() {
-  const code = manualCode.value.trim()
-  if (!code) {
-    showToast('请输入核销码')
-    return
-  }
-
+async function doVerify(code: string) {
+  if (!code.trim() || verifying.value) return
   verifying.value = true
   try {
-    const { data } = await verifyOrder(code)
+    await stopCamera()
+    const { data } = await verifyOrder(code.trim())
     showSuccessToast(`核销成功\n${data.data.user_nickname} - ${data.data.prize_name}`)
     showScanner.value = false
     manualCode.value = ''
@@ -77,12 +77,78 @@ async function onVerify() {
   }
 }
 
-// 扫码功能：使用 input[type=file] capture 模拟扫码，实际用手动输入作为降级方案
-// 完整的扫码功能可在后续集成 jsQR 或 html5-qrcode 库
-function openScanner() {
-  showScanner.value = true
+function onVerify() {
+  doVerify(manualCode.value)
 }
 
+async function stopCamera() {
+  if (html5Qrcode) {
+    try { await html5Qrcode.stop() } catch { /* 已停止 */ }
+    try { html5Qrcode.clear() } catch { /* 已清理 */ }
+    html5Qrcode = null
+  }
+  cameraActive.value = false
+}
+
+async function startCamera() {
+  await nextTick()
+  const el = document.getElementById('qr-reader')
+  if (!el) return
+
+  html5Qrcode = new Html5Qrcode('qr-reader')
+  try {
+    await html5Qrcode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      (decodedText) => { doVerify(decodedText) },
+      () => {},
+    )
+    cameraActive.value = true
+  } catch {
+    // 摄像头不可用，回退到手动输入
+    showToast('无法启动摄像头，请手动输入或选择图片')
+    scannerMode.value = 'manual'
+    html5Qrcode = null
+  }
+}
+
+// 从图片文件识别二维码
+async function onSelectQrImage(item: any) {
+  const file = Array.isArray(item) ? item[0]?.file : item?.file
+  if (!file) return
+  try {
+    const qr = new Html5Qrcode('qr-reader-hidden')
+    const result = await qr.scanFile(file, false)
+    qr.clear()
+    doVerify(result)
+  } catch {
+    showToast('未识别到二维码，请重新选择')
+  }
+}
+
+async function openScanner() {
+  manualCode.value = ''
+  scannerMode.value = 'manual'
+  showScanner.value = true
+
+  // 自动检测摄像头并尝试启动
+  try {
+    const devices = await Html5Qrcode.getCameras()
+    if (devices && devices.length > 0) {
+      scannerMode.value = 'camera'
+      await nextTick()
+      startCamera()
+    }
+  } catch {
+    // 无摄像头权限或不支持，保持手动模式
+  }
+}
+
+watch(showScanner, (val) => {
+  if (!val) stopCamera()
+})
+
+onBeforeUnmount(stopCamera)
 watch(activeTab, resetAndLoad)
 onMounted(loadOrders)
 </script>
@@ -120,23 +186,48 @@ onMounted(loadOrders)
     </van-list>
 
     <!-- 核销弹窗 -->
-    <van-dialog
-      v-model:show="showScanner"
-      title="核销订单"
-      show-cancel-button
-      confirm-button-text="核销"
-      @confirm="onVerify"
-    >
-      <div class="scanner-content">
-        <van-field
-          v-model="manualCode"
-          label="核销码"
-          placeholder="输入或扫描核销码"
-          clearable
-        />
-        <p class="scanner-tip">请输入打卡者订单上的核销码</p>
+    <van-popup v-model:show="showScanner" position="bottom" round :style="{ maxHeight: '90%' }" @closed="stopCamera">
+      <div class="scanner-popup">
+        <van-nav-bar title="核销订单" left-text="关闭" @click-left="showScanner = false" />
+
+        <!-- 模式切换 -->
+        <van-tabs v-model:active="scannerMode" @change="(name: string) => name === 'camera' ? startCamera() : stopCamera()">
+          <van-tab title="扫码" name="camera" />
+          <van-tab title="手动输入" name="manual" />
+        </van-tabs>
+
+        <!-- 摄像头扫码区 -->
+        <div v-show="scannerMode === 'camera'" class="camera-area">
+          <div id="qr-reader"></div>
+          <p v-if="!cameraActive" class="scanner-tip">正在启动摄像头...</p>
+        </div>
+
+        <!-- 手动输入区 -->
+        <div v-show="scannerMode === 'manual'" class="manual-area">
+          <van-field
+            v-model="manualCode"
+            label="核销码"
+            placeholder="输入核销码"
+            clearable
+          />
+
+          <div class="manual-actions">
+            <van-button type="primary" block :loading="verifying" @click="onVerify">
+              核销
+            </van-button>
+          </div>
+
+          <div class="image-scan-section">
+            <p class="scanner-tip">或者选择二维码图片识别：</p>
+            <van-uploader :after-read="onSelectQrImage" :max-count="1" accept="image/*" :preview-image="false">
+              <van-button size="small" plain type="primary" icon="photo-o">选择图片</van-button>
+            </van-uploader>
+          </div>
+        </div>
       </div>
-    </van-dialog>
+    </van-popup>
+    <!-- html5-qrcode scanFile 需要一个隐藏的容器 -->
+    <div id="qr-reader-hidden" style="display:none;"></div>
   </div>
 </template>
 
@@ -195,14 +286,49 @@ onMounted(loadOrders)
   margin-top: 2px;
 }
 
-.scanner-content {
+.scanner-popup {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.scanner-popup :deep(.van-nav-bar) {
+  background: #fff;
+}
+
+.scanner-popup :deep(.van-nav-bar__title) {
+  color: var(--van-text-color);
+}
+
+.camera-area {
   padding: 16px;
+  min-height: 300px;
+}
+
+.camera-area :deep(#qr-reader) {
+  border: none !important;
+}
+
+.camera-area :deep(#qr-reader__scan_region) {
+  min-height: 250px;
+}
+
+.manual-area {
+  padding: 16px;
+}
+
+.manual-actions {
+  margin-top: 16px;
+}
+
+.image-scan-section {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .scanner-tip {
   font-size: 12px;
   color: var(--van-text-color-3);
-  margin-top: 8px;
-  padding: 0 16px;
 }
 </style>

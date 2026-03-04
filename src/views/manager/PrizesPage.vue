@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { showToast, showSuccessToast } from 'vant'
-import { getManagerPrizes, createPrize, updatePrize } from '@/api/prizes'
+import { showToast, showSuccessToast, showLoadingToast, closeToast } from 'vant'
+import { getManagerPrizes, createPrize, updatePrize, uploadPrizeImage } from '@/api/prizes'
 import type { Prize } from '@/api/prizes'
 
 const prizeList = ref<Prize[]>([])
@@ -14,11 +14,12 @@ const form = ref({
   points_required: '',
   stock: '',
   is_blind_box: false,
-  image: null as File | null,
+  image_key: '' as string,
+  image_url: '' as string,
 })
 
 function resetForm() {
-  form.value = { name: '', points_required: '', stock: '', is_blind_box: false, image: null }
+  form.value = { name: '', points_required: '', stock: '', is_blind_box: false, image_key: '', image_url: '' }
   editingId.value = null
 }
 
@@ -43,14 +44,27 @@ function openEdit(prize: Prize) {
     points_required: String(prize.points_required),
     stock: String(prize.stock),
     is_blind_box: prize.is_blind_box === 1,
-    image: null,
+    image_key: prize.image_key || '',
+    image_url: prize.image_url || '',
   }
   showForm.value = true
 }
 
-function onImageSelect(item: any) {
+// 选择图片后立即上传
+async function onImageSelect(item: any) {
   const file = Array.isArray(item) ? item[0]?.file : item?.file
-  if (file) form.value.image = file
+  if (!file) return
+  showLoadingToast({ message: '上传中...', forbidClick: true, duration: 0 })
+  try {
+    const { data } = await uploadPrizeImage(file)
+    form.value.image_key = data.data.image_key
+    form.value.image_url = data.data.image_url
+    closeToast()
+    showSuccessToast('上传成功')
+  } catch (err: any) {
+    closeToast()
+    showToast(err.response?.data?.error || '上传失败')
+  }
 }
 
 async function onSubmit() {
@@ -66,7 +80,7 @@ async function onSubmit() {
     fd.append('points_required', form.value.points_required)
     fd.append('stock', form.value.stock)
     fd.append('is_blind_box', form.value.is_blind_box ? '1' : '0')
-    if (form.value.image) fd.append('image', form.value.image)
+    if (form.value.image_key) fd.append('image_key', form.value.image_key)
 
     if (editingId.value) {
       await updatePrize(editingId.value, fd)
@@ -146,7 +160,18 @@ onMounted(loadPrizes)
             </van-cell>
             <van-field label="奖品图片">
               <template #input>
-                <van-uploader :after-read="onImageSelect" :max-count="1" />
+                <div class="image-upload-area">
+                  <van-image
+                    v-if="form.image_url"
+                    width="80px"
+                    height="80px"
+                    radius="8"
+                    fit="cover"
+                    :src="form.image_url"
+                    style="margin-right: 8px;"
+                  />
+                  <van-uploader :after-read="onImageSelect" :max-count="1" :preview-image="false" />
+                </div>
               </template>
             </van-field>
           </van-cell-group>
@@ -184,5 +209,10 @@ onMounted(loadPrizes)
 
 .form-popup :deep(.van-nav-bar__title) {
   color: var(--van-text-color);
+}
+
+.image-upload-area {
+  display: flex;
+  align-items: center;
 }
 </style>

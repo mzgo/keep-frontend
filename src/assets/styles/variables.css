@@ -1,0 +1,54 @@
+:root {
+  /* 品牌主色 - 从Logo提取的深绿色 */
+  --color-primary: #1B7D3E;
+  --color-primary-light: #2E9B54;
+  --color-primary-dark: #145F2E;
+  --color-primary-bg: #E8F5EC;
+
+  /* 品牌强调色 - 从Logo提取的金色 */
+  --color-accent: #D4A843;
+  --color-accent-light: #F0D78C;
+  --color-accent-dark: #B8912E;
+  --color-accent-bg: #FFF8E1;
+
+  /* 语义色 */
+  --color-success: #1B7D3E;
+  --color-warning: #F5A623;
+  --color-danger: #EE4444;
+  --color-info: #4A90D9;
+
+  /* 中性色 */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #666666;
+  --color-text-placeholder: #BBBBBB;
+  --color-border: #E8E8E8;
+  --color-bg-page: #F5F5F5;
+  --color-bg-card: #FFFFFF;
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-round: 999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  /* 动效时长 */
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 400ms;
+
+  /* 字体 */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+}

@@ -1,0 +1,29 @@
+/* Vant 4 主题变量覆盖 - 统一品牌色 */
+:root:root {
+  --van-primary-color: var(--color-primary);
+  --van-success-color: var(--color-success);
+  --van-warning-color: var(--color-warning);
+  --van-danger-color: var(--color-danger);
+
+  --van-text-color: var(--color-text-primary);
+  --van-text-color-2: var(--color-text-secondary);
+  --van-text-color-3: var(--color-text-placeholder);
+
+  --van-background: var(--color-bg-page);
+  --van-background-2: var(--color-bg-card);
+
+  --van-border-color: var(--color-border);
+  --van-border-radius-md: var(--radius-md);
+  --van-border-radius-lg: var(--radius-lg);
+
+  --van-nav-bar-background: var(--color-primary);
+  --van-nav-bar-title-text-color: #FFFFFF;
+  --van-nav-bar-icon-color: #FFFFFF;
+
+  --van-tabbar-item-active-color: var(--color-primary);
+
+  --van-button-primary-background: var(--color-primary);
+  --van-button-primary-border-color: var(--color-primary);
+
+  --van-font-family: var(--font-family);
+}
